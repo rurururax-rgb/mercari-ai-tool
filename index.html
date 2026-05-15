@@ -488,7 +488,6 @@
     <div class="result-section">
       <div class="result-header">
         <div class="result-label">// タイトル案</div>
-        <button class="btn-copy" onclick="copyAllTitles()">まとめてコピー</button>
       </div>
       <div class="result-content">
         <div class="title-options" id="titles-container"></div>
@@ -516,7 +515,7 @@
           <div class="price-range" id="price-range"></div>
         </div>
         <div class="price-note">
-          ※ AIの推定価格より少し高めに設定しています。出品後に実際の相場を確認しながら調整してください。
+          ※ 相場の下限ラインを推奨価格としています。出品後に実際の売れ行きを見ながら調整してください。
         </div>
       </div>
     </div>
@@ -675,9 +674,9 @@ ${activeImages.length}枚の商品写真を詳しく分析して、以下のJSON
     "タイトル案2（ブランド・色・サイズなど具体的に）",
     "タイトル案3（状態・特徴を強調）"
   ],
-  "description": "説明文（150〜250文字。商品の特徴・状態・サイズ・色・ブランド・品番・注意事項を含む。丁寧だが親しみやすいトーン。適切に改行を入れる）",
+  "description": "以下の形式で説明文を作成してください。各セクションを改行で区切り、読みやすく丁寧に書いてください。\n\n商品の簡単な説明（2〜3行。ブランド・商品名・状態・特徴を自然な文章で）\n\n【商品情報】\n・ブランド：\n・カラー：\n・サイズ：\n・状態：\n・品番（わかる場合）：\n\n【商品特徴】\n・素材や質感の特徴\n・デザイン・機能の特徴\n・着用・使用感など\n\n【注意事項】\n・素材の特性や取り扱い方法\n・発送方法\n・その他注意点\n\nご不明な点はお気軽にご質問ください。",
   "price": {
-    "recommended": 価格（数字のみ。市場相場より15〜20%高めに設定。送料込みを想定）,
+    "recommended": 価格（数字のみ。市場相場の下限ラインに設定。送料込みを想定）,
     "range_min": 最低価格（数字のみ）,
     "range_max": 最高価格（数字のみ）
   }
@@ -738,18 +737,31 @@ function displayResults(data) {
   data.titles.forEach((title, i) => {
     const div = document.createElement('div');
     div.className = 'title-option';
+    div.style.cursor = 'pointer';
+    div.setAttribute('data-title', title);
     div.innerHTML = `
       <span class="title-option-num">0${i+1}</span>
       <span style="flex:1">${escapeHtml(title)}</span>
-      <span class="title-option-copy" onclick="copyTextDirect('${escapeHtml(title).replace(/'/g,"\\'")}', event)">📋</span>
+      <span class="title-option-copy" id="title-copy-${i}">📋</span>
     `;
+    div.addEventListener('click', () => {
+      navigator.clipboard.writeText(title).then(() => {
+        const icon = document.getElementById(`title-copy-${i}`);
+        icon.textContent = '✓';
+        div.style.borderColor = 'var(--success)';
+        setTimeout(() => {
+          icon.textContent = '📋';
+          div.style.borderColor = '';
+        }, 1500);
+      });
+    });
     titlesContainer.appendChild(div);
   });
 
   document.getElementById('desc-text').textContent = data.description;
-  document.getElementById('price-value').textContent = '¥' + data.price.recommended.toLocaleString();
+  document.getElementById('price-value').textContent = '¥' + data.price.range_min.toLocaleString();
   document.getElementById('price-range').textContent =
-    `¥${data.price.range_min.toLocaleString()} 〜 ¥${data.price.range_max.toLocaleString()}`;
+    `相場：¥${data.price.range_min.toLocaleString()} 〜 ¥${data.price.range_max.toLocaleString()}`;
 
   document.getElementById('results').classList.add('visible');
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
